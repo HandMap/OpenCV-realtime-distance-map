@@ -6,11 +6,13 @@ import numpy as np
 import imutils
 import cv2
 
-## Measured width of box in inches
+# Measured width of box in inches
 width = 1.49606
+
 
 def midpoint(ptA, ptB):
     return ((ptA[0] + ptB[0]) * 0.5, (ptA[1] + ptB[1]) * 0.5)
+
 
 # Video capture source
 cap = cv2.VideoCapture(0)
@@ -18,6 +20,9 @@ cap = cv2.VideoCapture(0)
 while True:
     # Capture frame-by-frame
     ret, image = cap.read()
+
+    # Capture from image file
+    # image = cv2.imread("images/hand-example-04.png")
 
     # convert it to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -118,7 +123,6 @@ while True:
     cv2.imshow('RGB', orig)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
 
 # When everything done, release the capture
 cap.release()
