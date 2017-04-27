@@ -19,7 +19,7 @@ colors = ((0, 0, 255), (240, 0, 159), (0, 165, 255), (255, 255, 0), (255, 0, 255
 
 # Color mask boundaries (BLUE)
 lower_bound = [86, 31, 4]
-upper_bound = [220, 88, 50]
+upper_bound = [240, 88, 50]
 
 # Video capture source
 cap = cv2.VideoCapture(0)
@@ -174,7 +174,7 @@ while True:
         # loop over the contours individually
         for c in cnts:
             # if the contour is not sufficiently large, ignore it
-            if cv2.contourArea(c) < 200:
+            if cv2.contourArea(c) < 200 or cv2.contourArea(c) > 500:
                 continue
 
             # Compute the rotated bounding box of the contour
