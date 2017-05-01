@@ -4,6 +4,7 @@ from imutils import perspective
 import numpy as np
 import imutils
 import cv2
+import math
 
 
 # Measured width of box in inches
@@ -17,12 +18,25 @@ debug_pos = 75
 # Colors for lines on distance vectors
 colors = ((0, 0, 255), (240, 0, 159), (0, 165, 255), (255, 255, 0), (255, 0, 255))
 
-# Color mask boundaries (BLUE)
-lower_bound = [86, 31, 4]
-upper_bound = [240, 88, 50]
+# Captured colors
+captured_left_mouse_color = []
+captured_right_mouse_color = []
+
+# Color mask boundaries
+lower_bound = None
+upper_bound = None
+lower_bound_all = None
+upper_bound_all = None
 
 # Video capture source
 cap = cv2.VideoCapture(0)
+
+
+def on_mouse_click(event, x, y, flags, frame):
+    if event == cv2.EVENT_LBUTTONUP:
+        captured_left_mouse_color.append(frame[y,x].tolist())
+    elif event == cv2.EVENT_RBUTTONUP:
+        captured_right_mouse_color.append(frame[y, x].tolist())
 
 
 def midpoint(ptA, ptB):
@@ -30,11 +44,59 @@ def midpoint(ptA, ptB):
 
 
 # Returns a masked version of an image based on RGB boundaries
-def color_masked_image(input_image):
+def color_masked_image(input_image, input_color, source=None):
+    global lower_bound
+    global upper_bound
+    global lower_bound_all
+    global upper_bound_all
+    lower = None
+    upper = None
 
-    # create NumPy arrays from the boundaries
-    lower = np.array(lower_bound, dtype="uint8")
-    upper = np.array(upper_bound, dtype="uint8")
+    if input_color == "blue":
+        if source:
+            lower_bound = [86, 31, 4]
+            upper_bound = [255, 120, 50]
+            lower = np.array(lower_bound, dtype="uint8")
+            upper = np.array(upper_bound, dtype="uint8")
+        else:
+            lower_bound_all = [86, 31, 4]
+            upper_bound_all = [255, 120, 50]
+            lower = np.array(lower_bound_all, dtype="uint8")
+            upper = np.array(upper_bound_all, dtype="uint8")
+    if input_color == "red":
+        if source:
+            lower_bound = [17, 15, 100]
+            upper_bound = [80, 60, 200]
+            lower = np.array(lower_bound, dtype="uint8")
+            upper = np.array(upper_bound, dtype="uint8")
+        else:
+            lower_bound_all = [17, 15, 100]
+            upper_bound_all = [80, 60, 200]
+            lower = np.array(lower_bound_all, dtype="uint8")
+            upper = np.array(upper_bound_all, dtype="uint8")
+    if input_color == "yellow":
+        if source:
+            lower_bound = [25, 146, 190]
+            upper_bound = [62, 174, 250]
+            lower = np.array(lower_bound, dtype="uint8")
+            upper = np.array(upper_bound, dtype="uint8")
+        else:
+            lower_bound_all = [25, 146, 190]
+            upper_bound_all = [62, 174, 250]
+            lower = np.array(lower_bound_all, dtype="uint8")
+            upper = np.array(upper_bound_all, dtype="uint8")
+    if input_color == "gray":
+        if source:
+            lower_bound = [103, 86, 65]
+            upper_bound = [145, 133, 128]
+            lower = np.array(lower_bound, dtype="uint8")
+            upper = np.array(upper_bound, dtype="uint8")
+        else:
+            lower_bound_all = [103, 86, 65]
+            upper_bound_all = [145, 133, 128]
+            lower = np.array(lower_bound_all, dtype="uint8")
+            upper = np.array(upper_bound_all, dtype="uint8")
+
 
     # find the colors within the specified boundaries and apply
     # the mask
@@ -94,14 +156,23 @@ def compute_bounding_box_for_contour(input_contour):
 def compute_and_add_debug_info(img, input_ref_obj):
     input_image = img
 
-    cv2.rectangle(input_image, (0, 0), (150, 50), lower_bound, -1)
-    cv2.rectangle(input_image, (150, 0), (300, 50), upper_bound, -1)
+    if lower_bound is not None and upper_bound is not None:
+        cv2.rectangle(input_image, (0, 0), (150, 50), lower_bound, -1)
+        cv2.rectangle(input_image, (150, 0), (300, 50), upper_bound, -1)
+
+    if lower_bound_all is not None and upper_bound_all is not None:
+        cv2.rectangle(input_image, (300, 0), (450, 50), lower_bound_all, -1)
+        cv2.rectangle(input_image, (450, 0), (600, 50), upper_bound_all, -1)
 
     font = cv2.FONT_HERSHEY_SIMPLEX
-    cv2.putText(input_image, 'rgb_lower',
+    cv2.putText(input_image, 'refObj_low',
                 (15, 30), font, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
-    cv2.putText(input_image, 'rgb_upper',
+    cv2.putText(input_image, 'refObj_up',
                 (165, 30), font, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(input_image, 'target_low',
+                (315, 30), font, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
+    cv2.putText(input_image, 'target_up',
+                (465, 30), font, 0.75, (255, 255, 255), 1, cv2.LINE_AA)
 
     cv2.putText(input_image, 'detected contours: ' + str(len(cnts)),
                 (15, debug_pos), font, 0.65, (255, 255, 255), 2, cv2.LINE_AA)
@@ -118,11 +189,18 @@ def compute_and_add_debug_info(img, input_ref_obj):
     cv2.putText(input_image, 'ref object width (cm): ' + str(width_cm),
                 (15, debug_pos + 75), font, 0.65, (255, 255, 255), 2, cv2.LINE_AA)
 
+    if captured_left_mouse_color:
+        cv2.putText(img, 'left click val: ' + str(captured_left_mouse_color[-1]),
+                    (15, debug_pos + 100), font, 0.65, (captured_left_mouse_color[-1]), 2, cv2.LINE_AA)
+    if captured_right_mouse_color:
+        cv2.putText(img, 'right click val: ' + str(captured_right_mouse_color[-1]),
+                    (15, debug_pos + 125), font, 0.65, (captured_right_mouse_color[-1]), 2, cv2.LINE_AA)
+
     return input_image
 
 
 def find_reference_object_pos(input_image):
-    masked = color_masked_image(input_image)
+    masked = color_masked_image(input_image, "blue", True)
     canny_masked = canny_edge_preparation(masked)
     cnt_canny_masked = find_contours_in_edge_map(canny_masked)
 
@@ -160,8 +238,11 @@ while True:
     # Make a copy of the image to draw on
     orig = image.copy()
 
+    # Used to mask out the area of a particular color
+    out_mask = color_masked_image(image, "red")
+
     # Perform canning edge manipulations
-    edged = canny_edge_preparation(image)
+    edged = canny_edge_preparation(out_mask)
 
     # find contours in the edge map
     cnts = find_contours_in_edge_map(edged)
@@ -174,7 +255,7 @@ while True:
         # loop over the contours individually
         for c in cnts:
             # if the contour is not sufficiently large, ignore it
-            if cv2.contourArea(c) < 200 or cv2.contourArea(c) > 500:
+            if cv2.contourArea(c) < 200:
                 continue
 
             # Compute the rotated bounding box of the contour
@@ -206,8 +287,12 @@ while True:
                     # units
                     D = dist.euclidean((xA, yA), (xB, yB)) / refObj[2]
                     (mX, mY) = midpoint((xA, yA), (xB, yB))
-                    cv2.putText(orig, "{:.1f}in".format(D), (int(mX), int(mY - 10)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
+                    cv2.putText(orig,
+                                "{:.1f}Deg".format(math.atan((abs(yA - yB) * 1.0 / (xA - xB) * 1.0)) * (180.0 / math.pi)),
+                                (int(mX), int(mY - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
+
+                    cv2.putText(orig, "{:.1f}in".format(D), (int(mX), int(mY + 10)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
 
     if debugging:
         final_image = compute_and_add_debug_info(orig, refObj)
@@ -216,6 +301,7 @@ while True:
 
     # Display the resulting frame
     cv2.imshow('Distance Mapping', final_image)
+    cv2.setMouseCallback('Distance Mapping', on_mouse_click, orig)
 
     # Key press handler
     key = cv2.waitKey(1) & 0xFF
